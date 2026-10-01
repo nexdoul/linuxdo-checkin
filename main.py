@@ -140,21 +140,34 @@ class LinuxDoBrowser:
         self.page.get(HOME_URL)
         time.sleep(5)
 
-        # 验证登录状态
-        try:
-            user_ele = self.page.ele("@id=current-user")
-        except Exception as e:
-            logger.warning(f"Cookie 登录验证异常: {str(e)}")
-            return True
-        if not user_ele:
+        # 验证登录状态（带重试：等待 CF 验证通过 / 页面加载完成）
+        for attempt in range(12):
+            time.sleep(5)
+            try:
+                user_ele = self.page.ele("@id=current-user")
+            except Exception as e:
+                logger.warning(f"Cookie 登录验证异常: {str(e)}")
+                return True
+            if user_ele:
+                logger.info("Cookie 登录验证成功")
+                return True
             if "avatar" in self.page.html:
                 logger.info("Cookie 登录验证成功 (通过 avatar)")
                 return True
-            logger.error("Cookie 登录验证失败 (未找到 current-user)，Cookie 可能已过期")
-            return False
-        else:
-            logger.info("Cookie 登录验证成功")
-            return True
+            try:
+                cur_title = (self.page.title or "")[:80]
+            except Exception:
+                cur_title = "<unknown>"
+            logger.info(f"等待登录状态确认... ({attempt + 1}/12，当前页面标题: {cur_title})")
+        try:
+            final_url, final_title = self.page.url, (self.page.title or "")[:100]
+        except Exception:
+            final_url, final_title = "<unknown>", "<unknown>"
+        logger.error(
+            "Cookie 登录验证失败 (未找到 current-user)，Cookie 可能已过期；"
+            f"最终页面: {final_url} | 标题: {final_title}"
+        )
+        return False
 
     def login(self):
         logger.info("开始账号密码登录")
