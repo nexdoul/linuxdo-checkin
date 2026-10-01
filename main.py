@@ -167,6 +167,21 @@ class LinuxDoBrowser:
             "Cookie 登录验证失败 (未找到 current-user)，Cookie 可能已过期；"
             f"最终页面: {final_url} | 标题: {final_title}"
         )
+        # 诊断：保存失败时的页面截图与 HTML 特征，供排查 CF 拦截 / 页面未渲染
+        try:
+            self.page.get_screenshot(path="login_debug.png", full_page=True)
+            logger.info("已保存登录失败截图 login_debug.png")
+        except Exception as e:
+            logger.warning(f"截图失败: {e}")
+        try:
+            html_text = self.page.html or ""
+            logger.info(f"登录失败时页面 HTML 长度: {len(html_text)}")
+            for marker in ["Just a moment", "challenge-platform", "cf-challenge",
+                           "discourse", "ember", "d-header", "login-button"]:
+                if marker.lower() in html_text.lower():
+                    logger.info(f"页面 HTML 包含标记: {marker}")
+        except Exception as e:
+            logger.warning(f"HTML 诊断失败: {e}")
         return False
 
     def login(self):

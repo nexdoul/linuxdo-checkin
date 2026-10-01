@@ -45,6 +45,14 @@ jobs:
         run: |
           python main.py
 
+      - name: Upload login debug screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: login-debug
+          path: login_debug.png
+          if-no-files-found: ignore
+
       - name: Delete workflow runs
         uses: Mattraks/delete-workflow-runs@v2
         with:
